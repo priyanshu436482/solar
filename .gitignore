@@ -1,0 +1,43 @@
+# BerryBell-managed. Dev-time state and build output: never commit it, never
+# export it to your GitHub repo, and keep it out of Tailwind's source scan
+# (src/styles.css declares no @source, so the Oxide scanner walks the whole
+# project root and honours this file).
+#
+# src/routeTree.gen.ts is deliberately NOT listed. It is generated, but a fresh
+# clone of your exported repo has to typecheck before anyone runs tsr generate.
+
+node_modules/
+dist/
+dist-pack/
+.output/
+.nitro/
+.wrangler/
+.tanstack/
+.vite/
+.turbo/
+
+# BerryBell's own bookkeeping on the VM: conversation history that
+# sprite-git.ts writes into the repo. Without this, the "git add -A" before
+# every GitHub push sends your agent transcripts to your own repo.
+#
+# One file in there is yours and IS committed: .berrybell/schedules.json, the
+# scheduled jobs your app runs. Hence three lines rather than ".berrybell/",
+# which would ignore it too — and not ".berrybell/*" alone, which would stop
+# ignoring .berrybell/ folders nested deeper in the tree.
+/.berrybell/*
+!/.berrybell/schedules.json
+*/**/.berrybell/
+
+# Same: attachment uploads and fetched reference-site briefs the API drops
+# into the tree so the agent can read them. They are inputs to a build, not
+# part of your site, and one of them can be any file you ever attached.
+.attachments/
+.reference/
+
+# Secrets. These stay on the machine that made them.
+.env
+.env.*
+.dev.vars
+*.local
+
+.DS_Store
