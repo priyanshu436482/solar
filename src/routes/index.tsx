@@ -1,4 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useCallback, useState } from 'react'
+import { QuoteModal } from '../components/QuoteModal'
 import { Reveal } from '../components/Reveal'
 import { SavingsCalculator } from '../components/SavingsCalculator'
 
@@ -19,8 +21,11 @@ const stats = [
 ]
 
 function Home() {
+  const [quoteOpen, setQuoteOpen] = useState(false)
+  const closeQuote = useCallback(() => setQuoteOpen(false), [])
   return (
     <div className="min-h-screen bg-ink text-slate-200">
+      <QuoteModal open={quoteOpen} onClose={closeQuote} />
       <header className="animate-rise fixed inset-x-0 top-0 z-10 border-b border-white/5 bg-ink/80 backdrop-blur">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4" aria-label="Main">
           <a href="#top" className="font-display text-2xl font-semibold tracking-wide text-gold">Auréa Solar</a>
@@ -30,15 +35,17 @@ function Home() {
             <a href="#testimonials" className="transition-colors hover:text-white">Testimonials</a>
             <a href="#contact" className="transition-colors hover:text-white">Contact</a>
           </div>
-          <a href="#contact" className="rounded-full border border-gold/60 px-5 py-2 text-sm font-medium text-gold transition-colors hover:bg-gold hover:text-ink">
+          <button type="button" onClick={() => setQuoteOpen(true)} className="rounded-full border border-gold/60 px-5 py-2 text-sm font-medium text-gold transition-colors hover:bg-gold hover:text-ink">
             Get a quote
-          </a>
+          </button>
         </nav>
       </header>
 
       <main id="top">
         <section className="relative flex min-h-screen items-center overflow-hidden px-6 pt-20">
           <div className="pointer-events-none absolute left-1/2 top-1/3 h-72 w-72 animate-glow rounded-full bg-gold/10 blur-3xl sm:h-[32rem] sm:w-[32rem]" />
+          <div className="pointer-events-none absolute right-1/2 top-1/2 h-64 w-64 animate-glow rounded-full bg-emerald/15 blur-3xl [animation-delay:3s] sm:h-[28rem] sm:w-[28rem]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-emerald/10 to-transparent" />
           <div className="relative mx-auto max-w-4xl text-center">
             <p className="animate-rise text-xs font-medium uppercase tracking-[0.3em] text-emerald">Luxury clean energy</p>
             <h1 className="animate-rise mt-6 font-display text-5xl font-semibold leading-tight text-white sm:text-7xl" style={{ animationDelay: '0.1s' }}>
