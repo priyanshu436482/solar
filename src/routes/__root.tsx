@@ -15,7 +15,7 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Auréa Solar — Luxury Clean Energy',
+        title: 'Sunshine Solar System — Luxury Clean Energy',
       },
       {
         name: 'description',
