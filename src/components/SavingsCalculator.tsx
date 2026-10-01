@@ -6,17 +6,17 @@ const SUN_OPTIONS = [
   { label: 'Excellent', peakHours: 5.6 },
 ] as const
 
-const RATE_PER_KWH = 0.18
-const COST_PER_WATT = 3.4
-const TAX_CREDIT = 0.3
+const RATE_PER_KWH = 8
+const COST_PER_WATT = 50
+const SUBSIDY = 0.3
 const PRICE_ESCALATION = 0.03
 const PANEL_DEGRADATION = 0.005
 const CO2_KG_PER_KWH = 0.39
 const YEARS = 25
 
-const usd = new Intl.NumberFormat('en-US', {
+const inr = new Intl.NumberFormat('en-IN', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'INR',
   maximumFractionDigits: 0,
 })
 
@@ -25,7 +25,7 @@ function estimate(monthlyBill: number, sunIndex: number) {
   const annualKwh = (monthlyBill * 12) / RATE_PER_KWH
   // Size the system to offset ~90% of usage, with a 14% system loss factor.
   const systemKw = (annualKwh * 0.9) / (peakHours * 365 * 0.86)
-  const netCost = systemKw * 1000 * COST_PER_WATT * (1 - TAX_CREDIT)
+  const netCost = systemKw * 1000 * COST_PER_WATT * (1 - SUBSIDY)
   const yearOneKwh = systemKw * peakHours * 365 * 0.86
 
   let total = 0
@@ -48,7 +48,7 @@ function estimate(monthlyBill: number, sunIndex: number) {
 }
 
 export function SavingsCalculator() {
-  const [bill, setBill] = useState(300)
+  const [bill, setBill] = useState(3000)
   const [sun, setSun] = useState(1)
   const r = estimate(bill, sun)
 
@@ -57,21 +57,21 @@ export function SavingsCalculator() {
       <div className="rounded-2xl border border-white/10 bg-surface p-8">
         <label htmlFor="bill" className="flex items-baseline justify-between text-sm text-slate-400">
           Average monthly electric bill
-          <span className="font-display text-3xl text-gold">{usd.format(bill)}</span>
+          <span className="font-display text-3xl text-gold">{inr.format(bill)}</span>
         </label>
         <input
           id="bill"
           type="range"
-          min={50}
-          max={1500}
-          step={10}
+          min={500}
+          max={15000}
+          step={100}
           value={bill}
           onChange={(e) => setBill(Number(e.target.value))}
           className="mt-4 w-full accent-[#d4af6a]"
         />
         <div className="mt-1 flex justify-between text-xs text-slate-500">
-          <span>$50</span>
-          <span>$1,500</span>
+          <span>₹500</span>
+          <span>₹15,000</span>
         </div>
 
         <fieldset className="mt-8">
@@ -96,8 +96,8 @@ export function SavingsCalculator() {
         </fieldset>
 
         <p className="mt-8 text-xs leading-relaxed text-slate-500">
-          Estimates assume ${RATE_PER_KWH.toFixed(2)}/kWh, 3% annual rate increases, a 30%
-          federal tax credit and a system sized to offset about 90% of your usage. Actual
+          Estimates assume ₹{RATE_PER_KWH}/unit, 3% annual rate increases, a 30%
+          government subsidy and a system sized to offset about 90% of your usage. Actual
           savings vary by location and roof.
         </p>
       </div>
@@ -107,13 +107,13 @@ export function SavingsCalculator() {
           {YEARS}-year net savings
         </p>
         <p key={Math.round(r.lifetimeSavings / 500)} className="animate-rise mt-3 font-display text-5xl text-gold sm:text-6xl">
-          {usd.format(Math.max(0, r.lifetimeSavings))}
+          {inr.format(Math.max(0, r.lifetimeSavings))}
         </p>
         <dl className="mt-8 grid grid-cols-2 gap-6 text-sm">
-          <Stat label="First-year savings" value={usd.format(r.yearOneSavings)} />
+          <Stat label="First-year savings" value={inr.format(r.yearOneSavings)} />
           <Stat label="Payback period" value={`${r.paybackYears.toFixed(1)} years`} />
           <Stat label="Recommended system" value={`${r.systemKw.toFixed(1)} kW`} />
-          <Stat label="Net investment" value={usd.format(r.netCost)} />
+          <Stat label="Net investment" value={inr.format(r.netCost)} />
           <Stat label="CO₂ avoided / year" value={`${r.co2Tons.toFixed(1)} tons`} />
         </dl>
         <a
