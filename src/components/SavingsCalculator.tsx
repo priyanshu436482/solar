@@ -1,18 +1,10 @@
 import { useState } from 'react'
 
-const SUN_OPTIONS = [
-  { label: 'Moderate', peakHours: 3.8 },
-  { label: 'Good', peakHours: 4.6 },
-  { label: 'Excellent', peakHours: 5.6 },
-] as const
-
-const RATE_PER_KWH = 8
-const COST_PER_WATT = 50
-const SUBSIDY = 0.3
-const PRICE_ESCALATION = 0.03
-const PANEL_DEGRADATION = 0.005
-const CO2_KG_PER_KWH = 0.39
-const YEARS = 25
+// Placeholder assumptions — replace with confirmed company figures.
+const RATE_PER_UNIT = 7.5 // blended Gujarat DISCOM tariff, ₹/unit
+const UNITS_PER_KW_MONTH = 120
+const SQFT_PER_KW = 100
+const COST_PER_KW = 60000 // installed cost before subsidy, ₹/kW
 
 const inr = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -20,101 +12,82 @@ const inr = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 0,
 })
 
-function estimate(monthlyBill: number, sunIndex: number) {
-  const peakHours = SUN_OPTIONS[sunIndex].peakHours
-  const annualKwh = (monthlyBill * 12) / RATE_PER_KWH
-  // Size the system to offset ~90% of usage, with a 14% system loss factor.
-  const systemKw = (annualKwh * 0.9) / (peakHours * 365 * 0.86)
-  const netCost = systemKw * 1000 * COST_PER_WATT * (1 - SUBSIDY)
-  const yearOneKwh = systemKw * peakHours * 365 * 0.86
+// PM Surya Ghar: ₹30,000/kW for first 2 kW, ₹18,000 for the 3rd kW, max ₹78,000.
+function subsidyFor(kw: number) {
+  return Math.min(78000, Math.min(kw, 2) * 30000 + Math.min(Math.max(kw - 2, 0), 1) * 18000)
+}
 
-  let total = 0
-  for (let y = 0; y < YEARS; y++) {
-    total +=
-      yearOneKwh *
-      (1 - PANEL_DEGRADATION) ** y *
-      RATE_PER_KWH *
-      (1 + PRICE_ESCALATION) ** y
-  }
-  const yearOneSavings = yearOneKwh * RATE_PER_KWH
+function estimate(monthlyBill: number, roofSqFt: number) {
+  const unitsUsed = monthlyBill / RATE_PER_UNIT
+  const kwNeeded = unitsUsed / UNITS_PER_KW_MONTH
+  const kwRoof = roofSqFt / SQFT_PER_KW
+  const systemKw = Math.max(0, Math.min(kwNeeded, kwRoof))
+  const monthlyUnits = systemKw * UNITS_PER_KW_MONTH
+  const monthlySavings = Math.min(monthlyUnits * RATE_PER_UNIT, monthlyBill)
+  const annualSavings = monthlySavings * 12
+  const subsidy = subsidyFor(systemKw)
+  const netCost = Math.max(0, systemKw * COST_PER_KW - subsidy)
   return {
     systemKw,
-    netCost,
-    yearOneSavings,
-    lifetimeSavings: total - netCost,
-    paybackYears: netCost / yearOneSavings,
-    co2Tons: (yearOneKwh * CO2_KG_PER_KWH) / 1000,
+    monthlyUnits,
+    monthlySavings,
+    annualSavings,
+    subsidy,
+    paybackYears: annualSavings > 0 ? netCost / annualSavings : 0,
   }
 }
 
 export function SavingsCalculator() {
-  const [bill, setBill] = useState(3000)
-  const [sun, setSun] = useState(1)
-  const r = estimate(bill, sun)
+  const [bill, setBill] = useState(4500)
+  const [roof, setRoof] = useState(350)
+  const r = estimate(bill, roof)
 
   return (
     <div className="mx-auto mt-14 grid max-w-5xl gap-6 lg:grid-cols-2">
       <div className="rounded-2xl border border-white/10 bg-surface p-8">
-        <label htmlFor="bill" className="flex items-baseline justify-between text-sm text-slate-400">
-          Average monthly electric bill
-          <span className="font-display text-3xl text-gold">{inr.format(bill)}</span>
+        <label htmlFor="bill" className="block text-sm text-slate-400">
+          Average Monthly Electricity Bill (₹)
         </label>
         <input
           id="bill"
-          type="range"
-          min={500}
-          max={15000}
+          type="number"
+          min={0}
           step={100}
           value={bill}
-          onChange={(e) => setBill(Number(e.target.value))}
-          className="mt-4 w-full accent-[#d4af6a]"
+          onChange={(e) => setBill(Math.max(0, Number(e.target.value)))}
+          className="mt-2 w-full rounded-lg border border-white/10 bg-ink px-4 py-3 text-lg text-white"
         />
-        <div className="mt-1 flex justify-between text-xs text-slate-500">
-          <span>₹500</span>
-          <span>₹15,000</span>
-        </div>
-
-        <fieldset className="mt-8">
-          <legend className="text-sm text-slate-400">Sun exposure at your home</legend>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {SUN_OPTIONS.map((o, i) => (
-              <button
-                key={o.label}
-                type="button"
-                aria-pressed={sun === i}
-                onClick={() => setSun(i)}
-                className={`rounded-lg border px-3 py-2 text-sm transition duration-200 active:scale-95 ${
-                  sun === i
-                    ? 'border-gold bg-gold/10 text-gold'
-                    : 'border-white/10 text-slate-400 hover:border-white/30'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
+        <label htmlFor="roof" className="mt-6 block text-sm text-slate-400">
+          Available Shadow-Free Roof Area (sq ft)
+        </label>
+        <input
+          id="roof"
+          type="number"
+          min={0}
+          step={10}
+          value={roof}
+          onChange={(e) => setRoof(Math.max(0, Number(e.target.value)))}
+          className="mt-2 w-full rounded-lg border border-white/10 bg-ink px-4 py-3 text-lg text-white"
+        />
         <p className="mt-8 text-xs leading-relaxed text-slate-500">
-          Estimates assume ₹{RATE_PER_KWH}/unit, 3% annual rate increases, a 30%
-          government subsidy and a system sized to offset about 90% of your usage. Actual
-          savings vary by location and roof.
+          Estimates assume ₹{RATE_PER_UNIT}/unit, {UNITS_PER_KW_MONTH} units per kW per
+          month, {SQFT_PER_KW} sq ft per kW and ₹{COST_PER_KW.toLocaleString('en-IN')}/kW
+          installed cost. PM Surya Ghar subsidy: ₹30,000/kW up to 2 kW, ₹18,000 for the
+          3rd kW, max ₹78,000. Actual savings vary.
         </p>
       </div>
 
       <div className="rounded-2xl border border-gold/30 bg-surface p-8" aria-live="polite">
-        <p className="text-xs uppercase tracking-[0.25em] text-emerald">
-          {YEARS}-year net savings
-        </p>
-        <p key={Math.round(r.lifetimeSavings / 500)} className="animate-rise mt-3 font-display text-5xl text-gold sm:text-6xl">
-          {inr.format(Math.max(0, r.lifetimeSavings))}
+        <p className="text-xs uppercase tracking-[0.25em] text-emerald">Annual Savings</p>
+        <p className="mt-3 font-display text-5xl text-gold sm:text-6xl">
+          {inr.format(r.annualSavings)}
         </p>
         <dl className="mt-8 grid grid-cols-2 gap-6 text-sm">
-          <Stat label="First-year savings" value={inr.format(r.yearOneSavings)} />
-          <Stat label="Payback period" value={`${r.paybackYears.toFixed(1)} years`} />
-          <Stat label="Recommended system" value={`${r.systemKw.toFixed(1)} kW`} />
-          <Stat label="Net investment" value={inr.format(r.netCost)} />
-          <Stat label="CO₂ avoided / year" value={`${r.co2Tons.toFixed(1)} tons`} />
+          <Stat label="Recommended kW" value={`${r.systemKw.toFixed(1)} kW`} />
+          <Stat label="Monthly Generation" value={`${Math.round(r.monthlyUnits)} units`} />
+          <Stat label="Monthly Bill Savings" value={inr.format(r.monthlySavings)} />
+          <Stat label="PM Surya Ghar Subsidy" value={inr.format(r.subsidy)} />
+          <Stat label="Estimated Payback Period" value={`${r.paybackYears.toFixed(1)} years`} />
         </dl>
         <a
           href="#contact"
