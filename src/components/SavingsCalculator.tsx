@@ -1,9 +1,10 @@
 import { useState } from 'react'
+import { useI18n } from '../i18n'
 
 const SUN_OPTIONS = [
-  { label: 'Moderate', peakHours: 3.8 },
-  { label: 'Good', peakHours: 4.6 },
-  { label: 'Excellent', peakHours: 5.6 },
+  { label: 'sunModerate', peakHours: 3.8 },
+  { label: 'sunGood', peakHours: 4.6 },
+  { label: 'sunExcellent', peakHours: 5.6 },
 ] as const
 
 const RATE_PER_KWH = 8
@@ -48,6 +49,7 @@ function estimate(monthlyBill: number, sunIndex: number) {
 }
 
 export function SavingsCalculator() {
+  const { t } = useI18n()
   const [bill, setBill] = useState(3000)
   const [sun, setSun] = useState(1)
   const r = estimate(bill, sun)
@@ -56,7 +58,7 @@ export function SavingsCalculator() {
     <div className="mx-auto mt-14 grid max-w-5xl gap-6 lg:grid-cols-2">
       <div className="rounded-2xl border border-white/10 bg-surface p-8">
         <label htmlFor="bill" className="flex items-baseline justify-between text-sm text-slate-400">
-          Average monthly electric bill
+          {t('calcBill')}
           <span className="font-display text-3xl text-gold">{inr.format(bill)}</span>
         </label>
         <input
@@ -75,7 +77,7 @@ export function SavingsCalculator() {
         </div>
 
         <fieldset className="mt-8">
-          <legend className="text-sm text-slate-400">Sun exposure at your home</legend>
+          <legend className="text-sm text-slate-400">{t('calcSun')}</legend>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {SUN_OPTIONS.map((o, i) => (
               <button
@@ -89,38 +91,36 @@ export function SavingsCalculator() {
                     : 'border-white/10 text-slate-400 hover:border-white/30'
                 }`}
               >
-                {o.label}
+                {t(o.label)}
               </button>
             ))}
           </div>
         </fieldset>
 
         <p className="mt-8 text-xs leading-relaxed text-slate-500">
-          Estimates assume ₹{RATE_PER_KWH}/unit, 3% annual rate increases, a 30%
-          government subsidy and a system sized to offset about 90% of your usage. Actual
-          savings vary by location and roof.
+          {t('calcNote1')}{RATE_PER_KWH}{t('calcNote2')}
         </p>
       </div>
 
       <div className="rounded-2xl border border-gold/30 bg-surface p-8" aria-live="polite">
         <p className="text-xs uppercase tracking-[0.25em] text-emerald">
-          {YEARS}-year net savings
+          {YEARS}{t('calcNet')}
         </p>
         <p key={Math.round(r.lifetimeSavings / 500)} className="animate-rise mt-3 font-display text-5xl text-gold sm:text-6xl">
           {inr.format(Math.max(0, r.lifetimeSavings))}
         </p>
         <dl className="mt-8 grid grid-cols-2 gap-6 text-sm">
-          <Stat label="First-year savings" value={inr.format(r.yearOneSavings)} />
-          <Stat label="Payback period" value={`${r.paybackYears.toFixed(1)} years`} />
-          <Stat label="Recommended system" value={`${r.systemKw.toFixed(1)} kW`} />
-          <Stat label="Net investment" value={inr.format(r.netCost)} />
-          <Stat label="CO₂ avoided / year" value={`${r.co2Tons.toFixed(1)} tons`} />
+          <Stat label={t('calcFirst')} value={inr.format(r.yearOneSavings)} />
+          <Stat label={t('calcPayback')} value={`${r.paybackYears.toFixed(1)} ${t('years')}`} />
+          <Stat label={t('calcSystem')} value={`${r.systemKw.toFixed(1)} ${t('kwUnit')}`} />
+          <Stat label={t('calcInvest')} value={inr.format(r.netCost)} />
+          <Stat label={t('calcCo2')} value={`${r.co2Tons.toFixed(1)} ${t('tons')}`} />
         </dl>
         <a
           href="#contact"
           className="mt-8 inline-block rounded-full bg-gold px-6 py-3 text-sm font-medium text-ink transition duration-300 hover:-translate-y-0.5 hover:bg-[#e3c283]"
         >
-          Get your precise proposal
+          {t('calcCta')}
         </a>
       </div>
     </div>
